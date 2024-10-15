@@ -4,6 +4,7 @@ const router = express.Router();
 const axios = require("axios")
 
 
+
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -15,6 +16,33 @@ router.post('/register', async (req, res) => {
     res.status(400).json({ message: 'Error registering user', error });
   }
 });
+
+
+//API for interservice communication
+router.get("/:jobId/getAllApplicants", async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+
+    // Find all users who have applied for the specified jobId
+    const applicants = await User.find({
+      "appliedJobs.jobId": jobId
+    }, {
+      username: 1,
+      email: 1,
+      "appliedJobs.$": 1 // To get only the specific applied job details
+    });
+
+    // If no applicants found
+    if (applicants.length === 0) {
+      return res.status(404).json({ message: "No applicants found for this job." });
+    }
+
+    res.status(200).json(applicants);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 router.post('/:userId/apply', async (req, res) => {
   const { jobId } = req.body;
@@ -59,7 +87,7 @@ router.get('/:userId/applications', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const user = await User.findById(userId).populate('appliedJobs.jobId');
+    const user = await User.findById(userId);
     res.status(200).json(user.appliedJobs);
   } catch (error) {
     res.status(400).json({ message: 'Error fetching applications', error });
@@ -67,24 +95,20 @@ router.get('/:userId/applications', async (req, res) => {
 });
 
 
+
 router.get("/jobs", async (req, res) => {
   try {
 
     try {
       const response = await axios.get("http://localhost:4000/jobs/");
-      if (response.status === 200) {
-        return res.status(200).json(response.data);
-      } else {
+      return res.status(200).json(response.data);
 
-        return res.status(500).json({ message: 'Error updating job application count' });
-      }
     } catch (axiosError) {
       console.error('Error calling job service:', axiosError.message);
       user.appliedJobs.pop();
       await user.save(); 
       return res.status(500).json({ message: 'Error communicating with job service', error: axiosError.message });
     }
-
 
   } catch (error) {
     res.status(500).json({ message: 'Error fetching Jobs', error });
