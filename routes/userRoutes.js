@@ -66,4 +66,29 @@ router.get('/:userId/applications', async (req, res) => {
   }
 });
 
+
+router.get("/jobs", async (req, res) => {
+  try {
+
+    try {
+      const response = await axios.get("http://localhost:4000/jobs/");
+      if (response.status === 200) {
+        return res.status(200).json(response.data);
+      } else {
+
+        return res.status(500).json({ message: 'Error updating job application count' });
+      }
+    } catch (axiosError) {
+      console.error('Error calling job service:', axiosError.message);
+      user.appliedJobs.pop();
+      await user.save(); 
+      return res.status(500).json({ message: 'Error communicating with job service', error: axiosError.message });
+    }
+
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching Jobs', error });
+  }
+})
+
 module.exports = router;
